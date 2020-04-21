@@ -293,6 +293,7 @@ Image from https://twopointseven.github.io/2017-10-29/cnn/
     'eye' looks like independently everywhere it could be in the image
   - This /parameter sharing/ between parts of the image means that the
     network can learn more robust features
+- We have developed a structure which could possibly be our "loop finder"
 
 * Convolutional Filters in pytorch
 
@@ -387,62 +388,6 @@ We will train 2 convolutional networks in pytorch.
 
 #+LATEX: \latexcomment{
 
-Checking convolution filters
-
-Lets download some images of cats and dogs.
-
-#+begin_src jupyter-python
-!wget --no-check-certificate \
-    https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip \
-    -O cats_and_dogs_filtered.zip
-!unzip cats_and_dogs_filtered.zip
-!ls
-#+end_src
-
-#+RESULTS:
-
-#+begin_src jupyter-python
-import PIL
-import numpy as np
-
-cat = PIL.Image.open("cats_and_dogs_filtered/train/cats/cat.240.jpg")
-cat = np.array(cat)
-cat = np.average([cat[:,:,0], cat[:,:,1], cat[:,:,2]], axis=0)/255
-plt.imshow(cat, cmap='gray')
-cat = torch.tensor(cat)
-cat.shape
-#+end_src
-
-#+RESULTS:
-:RESULTS:
-: torch.Size([424, 500])
-[[file:./.ob-jupyter/0963e5cdb00f9d6c0fe1c609e10b5f217c0750f4.png]]
-:END:
-
-Lets see the effect of a few specific filters on our cat image.
-
-#+begin_src jupyter-python
-import torch.nn.functional as F
-hfilt = torch.tensor([ [1,2,1.], [0,0,0.], [-1.,-2,-1]])
-out = F.conv2d(cat.view(1,1,424,500).float(), hfilt.view(1,1,3,3))
-plt.imshow(F.relu(out.view(422,498)), cmap='gray')
-plt.show()
-vfilt = torch.tensor([ [1,0,-1.], [2,0,-2.], [1.,0,-1]])
-out = F.conv2d(cat.view(1,1,424,500).float(), vfilt.view(1,1,3,3))
-plt.imshow(F.relu(out.view(422,498)+0.1), cmap='gray')
-plt.show()
-filt = torch.tensor([ [1,1,1.,1,1,1,1]*7])
-out = F.conv2d(cat.view(1,1,424,500).float(), filt.view(1,1,7,7))
-_=plt.imshow(out.view(418,494), cmap='gray')
-#+end_src
-
-#+RESULTS:
-:RESULTS:
-[[file:./.ob-jupyter/7f04080525d7ca455b39ebcb42389d00b3e3b685.png]]
-[[file:./.ob-jupyter/404f44dba90e312c3ee4097d99d3dd903b8dcce4.png]]
-[[file:./.ob-jupyter/7c77de292b870b876e27bd2e71395a5adcc15cb5.png]]
-:END:
-
 Training a convnet. 
 
 LeNet 5 was the first convolutional neural network, created all the
@@ -452,7 +397,7 @@ fact created to show that CNN were superior for this task.
 
 The structure of LeNet-5 is shown below:
 
-#+BEGIN_SRC dot :file lenet5.png :cmdline -Kdot -Tpng
+#+BEGIN_SRC dot :file lenet5.png :cmdline -Kdot -Tpng :exports output
   digraph {
   // graph from left to right
   rankdir=BT;
@@ -521,56 +466,9 @@ model.
 
 If training is taking to long, check you're running on the GPU (!).
 
-#+begin_src jupyter-python :async yes
-class LeNet5(torch.nn.Module):
-  def __init__(self):
-    super(LeNet5, self).__init__()
-    self.c1 = torch.nn.Conv2d(1,6,5,padding=2)
-    self.c2 = torch.nn.Conv2d(6,16,5)
-    self.avg = torch.nn.AvgPool2d(2)
-    self.fc1 = torch.nn.Linear(16*5*5,120)
-    self.fc2 = torch.nn.Linear(120,84)
-    self.fc3 = torch.nn.Linear(84,10)
-  def forward(self, x):
-    x = torch.tanh(self.avg(self.c1(x)))
-    x = torch.tanh(self.avg(self.c2(x)))
-    x = self.fc1(x.view(-1, 16*5*5))
-    x = self.fc2(torch.tanh(x))
-    x = self.fc3(torch.tanh(x))
-    return x
-
-net = LeNet5()
-net(iter(trainloader).next()[0])
-
-optim = torch.optim.Adam(net.parameters(), lr=0.001)
-lossf = torch.nn.CrossEntropyLoss()
-for epoch in range(3):
-  tl,tn = 0.,0.
-  for ii, (i, o) in enumerate(trainloader):
-    optim.zero_grad()
-    loss = lossf(net(i), o)
-    loss.backward()
-    optim.step()
-    tl+=loss.item()*i.size(0)
-    tn+=i.size(0)
-    if ii % 25 == 0:
-      print("epoch", epoch, "batch", ii, tl/tn)
-      tl,tn = 0.,0.
-#+end_src
-
 #+begin_src jupyter-python
-ta,tl,tn = 0.,0.,0.
-for ii, (i, o) in enumerate(testloader):
-  no = net(i)
-  loss = lossf(no, o)
-  tl+=loss.item()*i.size(0)
-  ta+=torch.sum(torch.max(no,axis=1)[1]==o)
-  tn+=i.size(0)
-print("test", tl/tn, ta/tn)
-#+end_src
 
-#+RESULTS:
-: test 0.11570307726860046 tensor(0.9650)
+#+end_src
 
 Similar to MNIST above, =torchvision.datasets.FashionMNIST= can
 download the Fashion-MNIST, which is a more difficult version of
@@ -585,21 +483,8 @@ categories in the Fashion-MNIST dataset are. Can you recognize the
 different categories in your images?
 
 #+begin_src jupyter-python :async yes
-import torch
-import matplotlib.pyplot as plt
-import torchvision
-import torchvision.transforms as transforms
 
-trans = transforms.ToTensor()
-train = torchvision.datasets.FashionMNIST('~/data/torchvision', train=True, download=True, transform=trans)
-test = torchvision.datasets.FashionMNIST('~/data/torchvision', train=False, download=True, transform=trans)
-trainloader = torch.utils.data.DataLoader(train, batch_size=64)
-testloader = torch.utils.data.DataLoader(test, batch_size=64)
 #+end_src
-
-#+RESULTS:
-| T-shirt/top | Trouser | Pullover | Dress | Coat | Sandal | Shirt | Sneaker | Bag | Ankle boot |
-
 
 Write and train a network to distinguish clothing categories from the
 Fashion MNIST data. Try to get the best accuracy on the test set you
@@ -609,7 +494,7 @@ can expand and adapt the LeNet-5 network as you like. You can add more
 convolutional filters, and change the filter sizes, increase or
 decrease the hidden layers, try different activation functions, and so
 on. As you make changes, run and see how the training time and overall
-accuracy changes. Train and compare at least 3 networks.
+accuracy changes. Train and compare at least 2 networks.
 
 #+begin_src jupyter-python
 
