@@ -384,7 +384,7 @@ print(list(p.numel() for p in net.parameters()))
 
 * Exercises
 
-We will train 2 convolutional networks in pytorch.
+We will train a few convolutional networks in pytorch.
 
 #+LATEX: \latexcomment{
 
@@ -426,7 +426,6 @@ The structure of LeNet-5 is shown below:
 #+RESULTS:
 [[file:lenet5.png]]
 
-
 This is interpreted as the input image starting at the bottom, and it
 gets processed by the succsessive layers with the output of one layer
 flowing to the next. Note that the diagram indicates whether the
@@ -456,9 +455,12 @@ testloader = torch.utils.data.DataLoader(test, batch_size=64)
 #+RESULTS:
 
 Based on the structure given above, create LeNet-5 in pytorch, and
-train it on the MNIST dataset. What is the best loss/accuracy you can
-achieve? ([[http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf][LeCun was able to get to 99%]] using some tricks we'll see
-later in the course)
+train it on the MNIST dataset. The usual cross-entropy loss can be
+used (convolutional filters can be backpropagated through, as a fully
+connected layer can) and the usual optimizers we've seen in previous
+weeks are also usable with CNNs with no new surprises. What is the
+best loss/accuracy you can achieve?  ([[http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf][LeCun was able to get to 99%]]
+using some tricks we'll see later in the course)
 
 Keep track of the test/train curve (sample several times an epoch),
 and check for overtraining, and show the accuracy of your best
