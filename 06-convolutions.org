@@ -397,7 +397,7 @@ fact created to show that CNN were superior for this task.
 
 The structure of LeNet-5 is shown below:
 
-#+BEGIN_SRC dot :file lenet5.png :cmdline -Kdot -Tpng :exports output
+#+BEGIN_SRC dot :file lenet5.png :cmdline -Kdot -Tpng :exports results
   digraph {
   // graph from left to right
   rankdir=BT;
